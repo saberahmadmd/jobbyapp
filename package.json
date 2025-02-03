@@ -69,5 +69,10 @@
       "Firefox ESR",
       "not ie < 11"
     ]
+  },
+  {
+  "engines": {
+    "node": "22.x"
   }
+}
 }
