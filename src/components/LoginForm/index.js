@@ -1,40 +1,36 @@
 import './index.css'
-
-import {Component} from 'react'
+import { useState } from 'react'
 import Cookies from 'js-cookie'
-import {Redirect} from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 
-class LoginForm extends Component {
-  state = {
-    username: '',
-    password: '',
-    showSubmitError: false,
-    errorMsg: '',
+const LoginForm = () => {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showSubmitError, setShowSubmitError] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const navigate = useNavigate()
+
+  const onChangeUsername = event => {
+    setUsername(event.target.value)
   }
 
-  onChangeUsername = event => {
-    this.setState({username: event.target.value})
+  const onChangePassword = event => {
+    setPassword(event.target.value)
   }
 
-  onChangePassword = event => {
-    this.setState({password: event.target.value})
+  const onSubmitSuccess = jwtToken => {
+    Cookies.set('jwt_token', jwtToken, { expires: 30, path: '/' })
+    navigate('/', { replace: true })
   }
 
-  onSubmitSuccess = jwtToken => {
-    const {history} = this.props
-
-    Cookies.set('jwt_token', jwtToken, {expires: 30, path: '/'})
-    history.replace('/')
+  const onSubmitFailure = errorMsg => {
+    setShowSubmitError(true)
+    setErrorMsg(errorMsg)
   }
 
-  onSubmitFailure = errorMsg => {
-    this.setState({showSubmitError: true, errorMsg})
-  }
-
-  submitForm = async event => {
+  const submitForm = async event => {
     event.preventDefault()
-    const {username, password} = this.state
-    const userDetails = {username, password}
+    const userDetails = { username, password }
     const url = 'https://apis.ccbp.in/login'
     const options = {
       method: 'POST',
@@ -44,77 +40,58 @@ class LoginForm extends Component {
     const response = await fetch(url, options)
     const data = await response.json()
     if (response.ok === true) {
-      this.onSubmitSuccess(data.jwt_token)
+      onSubmitSuccess(data.jwt_token)
     } else {
-      this.onSubmitFailure(data.error_msg)
+      onSubmitFailure(data.error_msg)
     }
   }
 
-  renderPasswordField = () => {
-    const {password} = this.state
-    return (
-      <>
-        <label className="input-label" htmlFor="password">
-          PASSWORD
-        </label>
-        <input
-          type="password"
-          id="password"
-          className="password-input-field"
-          value={password}
-          onChange={this.onChangePassword}
-          placeholder="Password"
-        />
-      </>
-    )
+  const jwtToken = Cookies.get('jwt_token')
+  if (jwtToken !== undefined) {
+    return <Navigate to="/" replace />
   }
 
-  renderUsernameField = () => {
-    const {username} = this.state
-    return (
-      <>
-        <label className="input-label" htmlFor="username">
-          USERNAME
-        </label>
-        <input
-          type="text"
-          id="username"
-          className="username-input-field"
-          value={username}
-          onChange={this.onChangeUsername}
-          placeholder="Username"
+  return (
+    <div className="login-form-container">
+      <form className="form-container" onSubmit={submitForm}>
+        <img
+          className="form-website-logo"
+          src="https://assets.ccbp.in/frontend/react-js/logo-img.png"
+          alt="website logo"
         />
-      </>
-    )
-  }
-
-  render() {
-    const {showSubmitError, errorMsg} = this.state
-
-    const jwtToken = Cookies.get('jwt_token')
-    if (jwtToken !== undefined) {
-      return <Redirect to="/" />
-    }
-
-    return (
-      <div className="login-form-container">
-        <form className="form-container" onSubmit={this.submitForm}>
-          <img
-            className="form-website-logo"
-            src="https://assets.ccbp.in/frontend/react-js/logo-img.png"
-            alt="website logo"
+        <div className="input-container">
+          <label className="input-label" htmlFor="username">
+            USERNAME
+          </label>
+          <input
+            type="text"
+            id="username"
+            className="username-input-field"
+            value={username}
+            onChange={onChangeUsername}
+            placeholder="Username"
           />
-          <div className="input-container">{this.renderUsernameField()}</div>
-          <div className="input-container">{this.renderPasswordField()}</div>
-
-          <button type="submit" className="login-button">
-            Login
-          </button>
-          {showSubmitError && <p className="error-message">*{errorMsg}</p>}
-        </form>
-      </div>
-    )
-  }
+        </div>
+        <div className="input-container">
+          <label className="input-label" htmlFor="password">
+            PASSWORD
+          </label>
+          <input
+            type="password"
+            id="password"
+            className="password-input-field"
+            value={password}
+            onChange={onChangePassword}
+            placeholder="Password"
+          />
+        </div>
+        <button type="submit" className="login-button">
+          Login
+        </button>
+        {showSubmitError && <p className="error-message">*{errorMsg}</p>}
+      </form>
+    </div>
+  )
 }
 
 export default LoginForm

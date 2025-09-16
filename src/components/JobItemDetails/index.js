@@ -1,16 +1,25 @@
 import './index.css'
 
-import {Component} from 'react'
+import { Component } from 'react'
 import Cookies from 'js-cookie'
-import Loader from 'react-loader-spinner'
+import { ThreeDots } from 'react-loader-spinner'
 
-import {AiFillStar} from 'react-icons/ai'
-import {MdLocationOn} from 'react-icons/md'
-import {BsBriefcaseFill} from 'react-icons/bs'
-import {BiLinkExternal} from 'react-icons/bi'
+import { AiFillStar } from 'react-icons/ai'
+import { MdLocationOn } from 'react-icons/md'
+import { BsBriefcaseFill } from 'react-icons/bs'
+import { BiLinkExternal } from 'react-icons/bi'
 
 import Header from '../Header'
 import SimilarJobItem from '../SimilarJobItem'
+
+import { useParams } from 'react-router-dom'
+
+function withRouter(Component) {
+  return function WrappedComponent(props) {
+    const params = useParams()
+    return <Component {...props} params={params} />
+  }
+}
 
 const apiStatusConstants = {
   initial: 'INITIAL',
@@ -31,9 +40,8 @@ class JobItemDetails extends Component {
   }
 
   getJobData = async () => {
-    const {match} = this.props
-    const {params} = match
-    const {id} = params
+    const { params } = this.props
+    const { id } = params
 
     this.setState({
       apiStatus: apiStatusConstants.inProgress,
@@ -48,41 +56,46 @@ class JobItemDetails extends Component {
       method: 'GET',
     }
 
-    const response = await fetch(apiUrl, options)
-    if (response.ok === true) {
-      const fetchedData = await response.json()
-      console.log(fetchedData)
+    try {
+      const response = await fetch(apiUrl, options)
+      if (response.ok) {
+        const fetchedData = await response.json()
 
-      const updatedData = {
-        companyLogoUrl: fetchedData.job_details.company_logo_url,
-        companyWebsiteUrl: fetchedData.job_details.company_website_url,
-        employmentType: fetchedData.job_details.employment_type,
-        id: fetchedData.job_details.id,
-        jobDescription: fetchedData.job_details.job_description,
-        skills: fetchedData.job_details.skills,
-        lifeAtCompany: fetchedData.job_details.life_at_company,
-        location: fetchedData.job_details.location,
-        packagePerAnnum: fetchedData.job_details.package_per_annum,
-        rating: fetchedData.job_details.rating,
-        title: fetchedData.job_details.title,
+        const updatedData = {
+          companyLogoUrl: fetchedData.job_details.company_logo_url,
+          companyWebsiteUrl: fetchedData.job_details.company_website_url,
+          employmentType: fetchedData.job_details.employment_type,
+          id: fetchedData.job_details.id,
+          jobDescription: fetchedData.job_details.job_description,
+          skills: fetchedData.job_details.skills,
+          lifeAtCompany: fetchedData.job_details.life_at_company,
+          location: fetchedData.job_details.location,
+          packagePerAnnum: fetchedData.job_details.package_per_annum,
+          rating: fetchedData.job_details.rating,
+          title: fetchedData.job_details.title,
+        }
+
+        const updatedSimilarJobs = fetchedData.similar_jobs.map(eachJob => ({
+          companyLogoUrl: eachJob.company_logo_url,
+          employmentType: eachJob.employment_type,
+          id: eachJob.id,
+          jobDescription: eachJob.job_description,
+          location: eachJob.location,
+          rating: eachJob.rating,
+          title: eachJob.title,
+        }))
+
+        this.setState({
+          jobDetails: updatedData,
+          similarJobsData: updatedSimilarJobs,
+          apiStatus: apiStatusConstants.success,
+        })
+      } else {
+        this.setState({
+          apiStatus: apiStatusConstants.failure,
+        })
       }
-
-      const updatedSimilarJobs = fetchedData.similar_jobs.map(eachJob => ({
-        companyLogoUrl: eachJob.company_logo_url,
-        employmentType: eachJob.employment_type,
-        id: eachJob.id,
-        jobDescription: eachJob.job_description,
-        location: eachJob.location,
-        rating: eachJob.rating,
-        title: eachJob.title,
-      }))
-
-      this.setState({
-        jobDetails: updatedData,
-        similarJobsData: updatedSimilarJobs,
-        apiStatus: apiStatusConstants.success,
-      })
-    } else {
+    } catch (error) {
       this.setState({
         apiStatus: apiStatusConstants.failure,
       })
@@ -91,7 +104,7 @@ class JobItemDetails extends Component {
 
   renderLoadingView = () => (
     <div className="job-details-loader-container" data-testid="loader">
-      <Loader type="ThreeDots" color="#ffffff" height={50} width={50} />
+      <ThreeDots color="#ffffff" height={50} width={50} />
     </div>
   )
 
@@ -123,7 +136,7 @@ class JobItemDetails extends Component {
   )
 
   renderJobDetailsView = () => {
-    const {jobDetails, similarJobsData} = this.state
+    const { jobDetails, similarJobsData } = this.state
 
     const {
       companyLogoUrl,
@@ -172,9 +185,8 @@ class JobItemDetails extends Component {
           <div className="job-details-description-container">
             <div className="job-details-heading-and-link-container">
               <h1 className="job-details-description-heading">Description</h1>
-              <a href={companyWebsiteUrl} className="visit-link">
-                Visit
-                <BiLinkExternal />
+              <a href={companyWebsiteUrl} className="visit-link" target="_blank" rel="noopener noreferrer">
+                Visit <BiLinkExternal />
               </a>
             </div>
             <p className="job-details-description">{jobDescription}</p>
@@ -196,9 +208,7 @@ class JobItemDetails extends Component {
           </div>
           <div className="job-details-life-at-company-container">
             <h1 className="job-details-description-heading">Life at Company</h1>
-            <p className="job-details-description">
-              {lifeAtCompany.description}
-            </p>
+            <p className="job-details-description">{lifeAtCompany.description}</p>
             <img
               width="100%"
               height="230px"
@@ -221,7 +231,7 @@ class JobItemDetails extends Component {
   }
 
   renderJobDetails = () => {
-    const {apiStatus} = this.state
+    const { apiStatus } = this.state
 
     switch (apiStatus) {
       case apiStatusConstants.success:
@@ -230,7 +240,6 @@ class JobItemDetails extends Component {
         return this.renderFailureView()
       case apiStatusConstants.inProgress:
         return this.renderLoadingView()
-
       default:
         return null
     }
@@ -248,4 +257,4 @@ class JobItemDetails extends Component {
   }
 }
 
-export default JobItemDetails
+export default withRouter(JobItemDetails)

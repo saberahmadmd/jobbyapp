@@ -1,7 +1,6 @@
 import './index.css'
-
-import {Component} from 'react'
-import Loader from 'react-loader-spinner'
+import { useState, useEffect } from 'react'
+import { ThreeDots } from 'react-loader-spinner'
 import Cookies from 'js-cookie'
 
 const apiStatusConstants = {
@@ -11,20 +10,12 @@ const apiStatusConstants = {
   inProgress: 'IN_PROGRESS',
 }
 
-class ProfileSection extends Component {
-  state = {
-    apiStatus: apiStatusConstants.initial,
-    profileDetails: {},
-  }
+const ProfileSection = () => {
+  const [apiStatus, setApiStatus] = useState(apiStatusConstants.initial)
+  const [profileDetails, setProfileDetails] = useState({})
 
-  componentDidMount() {
-    this.getProfileDetails()
-  }
-
-  getProfileDetails = async () => {
-    this.setState({
-      apiStatus: apiStatusConstants.inProgress,
-    })
+  const getProfileDetails = async () => {
+    setApiStatus(apiStatusConstants.inProgress)
 
     const jwtToken = Cookies.get('jwt_token')
     const apiUrl = 'https://apis.ccbp.in/profile'
@@ -35,28 +26,34 @@ class ProfileSection extends Component {
       },
       method: 'GET',
     }
-    const response = await fetch(apiUrl, options)
-    if (response.ok) {
-      const fetchedData = await response.json()
-      const updatedData = {
-        name: fetchedData.profile_details.name,
-        profileImageUrl: fetchedData.profile_details.profile_image_url,
-        shortBio: fetchedData.profile_details.short_bio,
+
+    try {
+      const response = await fetch(apiUrl, options)
+      if (response.ok) {
+        const fetchedData = await response.json()
+        const updatedData = {
+          name: fetchedData.profile_details.name,
+          profileImageUrl: fetchedData.profile_details.profile_image_url,
+          shortBio: fetchedData.profile_details.short_bio,
+        }
+        setProfileDetails(updatedData)
+        setApiStatus(apiStatusConstants.success)
+      } else {
+        setApiStatus(apiStatusConstants.failure)
       }
-      this.setState({
-        profileDetails: updatedData,
-        apiStatus: apiStatusConstants.success,
-      })
-    } else {
-      this.setState({apiStatus: apiStatusConstants.failure})
+    } catch (error) {
+      setApiStatus(apiStatusConstants.failure)
     }
   }
 
-  renderSuccessView = () => {
-    const {profileDetails} = this.state
-    const {name, profileImageUrl, shortBio} = profileDetails
+  useEffect(() => {
+    getProfileDetails()
+  }, [])
+
+  const renderSuccessView = () => {
+    const { name, profileImageUrl, shortBio } = profileDetails
     return (
-      <div className="profile-details-cotnainer">
+      <div className="profile-details-container">
         <img
           className="profile-details-image"
           src={profileImageUrl}
@@ -68,46 +65,38 @@ class ProfileSection extends Component {
     )
   }
 
-  renderLoadingView = () => (
-    <div className="profile-loader-container">
-      <Loader type="ThreeDots" color="#ffffff" height={50} width={50} />
+  const renderLoadingView = () => (
+    <div className="profile-loader-container" data-testid="loader">
+      <ThreeDots color="#ffffff" height={50} width={50} />
     </div>
   )
 
-  onRetry = () => {
-    this.getProfileDetails()
+  const onRetry = () => {
+    getProfileDetails()
   }
 
-  renderFailureView = () => (
+  const renderFailureView = () => (
     <div className="profile-failure-view">
-      <button
-        type="button"
-        className="profile-retry-btn"
-        onClick={this.onRetry}
-      >
+      <button type="button" className="profile-retry-btn" onClick={onRetry}>
         Retry
       </button>
     </div>
   )
 
-  renderAllProfileView = () => {
-    const {apiStatus} = this.state
-
+  const renderAllProfileView = () => {
     switch (apiStatus) {
       case apiStatusConstants.success:
-        return this.renderSuccessView()
+        return renderSuccessView()
       case apiStatusConstants.inProgress:
-        return this.renderLoadingView()
+        return renderLoadingView()
       case apiStatusConstants.failure:
-        return this.renderFailureView()
+        return renderFailureView()
       default:
         return null
     }
   }
 
-  render() {
-    return <div className="profile-section">{this.renderAllProfileView()}</div>
-  }
+  return <div className="profile-section">{renderAllProfileView()}</div>
 }
 
 export default ProfileSection
